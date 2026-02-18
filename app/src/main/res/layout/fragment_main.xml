@@ -9,6 +9,12 @@
         android:layout_height="wrap_content"
         android:id="@+id/tv1"
         android:text="hello"/>
+    <EditText
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/editText"
+        android:hint="enter something"
+        android:autofillHints="" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:layout_width="match_parent"

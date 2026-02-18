@@ -7,7 +7,9 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.example.testrxjava.databinding.ItemBinding
 
-class CustomAdapter : RecyclerView.Adapter<CustomAdapter.CustomViewHolder>() {
+class CustomAdapter(
+    private val getItemPosition: (Int)->Unit
+) : RecyclerView.Adapter<CustomAdapter.CustomViewHolder>() {
     var list = listOf<ItemData>()
     override fun onCreateViewHolder(
         parent: ViewGroup,
@@ -36,6 +38,9 @@ class CustomAdapter : RecyclerView.Adapter<CustomAdapter.CustomViewHolder>() {
             with(binding) {
                 itemId.text = itemData.id.toString()
                 itemTitle.text = itemData.title.toString()
+                binding.root.setOnClickListener {
+                    getItemPosition(list.indexOf(itemData))
+                }
             }
         }
     }

@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.testrxjava.databinding.FragmentMainBinding
@@ -11,6 +12,7 @@ import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.schedulers.Schedulers
+import io.reactivex.rxjava3.subjects.PublishSubject
 import java.util.concurrent.TimeUnit
 
 class MainFragment : Fragment() {
@@ -20,6 +22,7 @@ class MainFragment : Fragment() {
     val api = RetrofitClient.api
     private val compositeDisposable = CompositeDisposable()
     var customAdapter: CustomAdapter? = null
+    val itemPositionSubject = PublishSubject.create<Int>()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -37,12 +40,14 @@ class MainFragment : Fragment() {
         initData()
         initRecView()
         initTextView()
-
+        initToast()
 
     }
 
     private fun initAdapter() {
-        customAdapter = CustomAdapter()
+        customAdapter = CustomAdapter(){
+            itemPositionSubject.onNext(it)
+        }
     }
 
 
@@ -80,6 +85,16 @@ class MainFragment : Fragment() {
                 }
             compositeDisposable.add(timer)
         }
+    }
+
+    private fun initToast(){
+        val disposableItemPosition = itemPositionSubject
+            .subscribeOn(Schedulers.single())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe{
+            Toast.makeText(requireActivity(), it.toString(), Toast.LENGTH_SHORT).show()
+        }
+        compositeDisposable.add(disposableItemPosition)
     }
 
     override fun onDestroyView() {
