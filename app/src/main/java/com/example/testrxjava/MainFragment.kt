@@ -1,6 +1,9 @@
 package com.example.testrxjava
 
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -41,7 +44,47 @@ class MainFragment : Fragment() {
         initRecView()
         initTextView()
         initToast()
+        initEditText()
 
+    }
+
+    private fun initEditText(){
+        val subject = PublishSubject.create<String>()
+        with(binding){
+
+            editText.addTextChangedListener(object: TextWatcher{
+                override fun afterTextChanged(p0: Editable?) {
+                    subject.onNext(p0.toString())
+                }
+
+                override fun beforeTextChanged(
+                    p0: CharSequence?,
+                    p1: Int,
+                    p2: Int,
+                    p3: Int
+                ) {
+                }
+
+                override fun onTextChanged(
+                    p0: CharSequence?,
+                    p1: Int,
+                    p2: Int,
+                    p3: Int
+                ) {
+                }
+
+            })
+        }
+
+        val editTextDisposable = subject
+            .debounce(3, TimeUnit.SECONDS)
+            .subscribeOn(Schedulers.single())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe{
+                Log.i("CheckEdit", it)
+            }
+
+        compositeDisposable.add(editTextDisposable)
     }
 
     private fun initAdapter() {
