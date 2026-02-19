@@ -13,10 +13,13 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.testrxjava.databinding.FragmentMainBinding
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Observable
+import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import io.reactivex.rxjava3.subjects.PublishSubject
+import okio.IOException
 import java.util.concurrent.TimeUnit
+
 
 class MainFragment : Fragment() {
 
@@ -45,14 +48,79 @@ class MainFragment : Fragment() {
         initTextView()
         initToast()
         initEditText()
+        taskWithTwoServersA()
+        taskWithTwoServersB()
 
     }
 
-    private fun initEditText(){
-        val subject = PublishSubject.create<String>()
-        with(binding){
+    private fun firstServer(): Single<List<SomeCard>> =
+        Single.fromCallable {
+            listOf(
+                SomeCard(1, "Карта 1", 5),
+                SomeCard(2, "Карта 2", 10),
+            )
+        }.subscribeOn(Schedulers.io())
 
-            editText.addTextChangedListener(object: TextWatcher{
+    private fun secondServer(): Single<List<SomeCard>> =
+        Single.error<List<SomeCard>>(IOException("rre"))
+            .subscribeOn(Schedulers.io())
+
+
+    private fun taskWithTwoServersA() {
+        val request1 = firstServer()
+            .onErrorReturn { emptyList() }
+        val request2 = secondServer()
+            .onErrorReturn { emptyList() }
+
+        val result = Single.zip(request1, request2) { list1, list2 ->
+            list1 + list2
+        }.subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(
+                { cards ->
+                    println("all cards $cards")
+                },
+                { error ->
+                    println("error: ${error.message}")
+                }
+            )
+
+        compositeDisposable.add(result)
+
+    }
+
+    private fun taskWithTwoServersB() {
+        val request1 = firstServer()
+            .toObservable()
+            .onErrorComplete()
+        val request2 = secondServer()
+            .toObservable()
+            .onErrorComplete()
+
+        val result = Observable.zip(request1, request2) { list1, list2 ->
+            list1 + list2
+        }.subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(
+                { cards ->
+                    println("all cards $cards")
+                },
+                { error ->
+                    println("error: ${error.message}")
+
+                }
+            )
+
+        compositeDisposable.add(result)
+
+    }
+
+
+    private fun initEditText() {
+        val subject = PublishSubject.create<String>()
+        with(binding) {
+
+            editText.addTextChangedListener(object : TextWatcher {
                 override fun afterTextChanged(p0: Editable?) {
                     subject.onNext(p0.toString())
                 }
@@ -80,7 +148,7 @@ class MainFragment : Fragment() {
             .debounce(3, TimeUnit.SECONDS)
             .subscribeOn(Schedulers.single())
             .observeOn(AndroidSchedulers.mainThread())
-            .subscribe{
+            .subscribe {
                 Log.i("CheckEdit", it)
             }
 
@@ -88,7 +156,7 @@ class MainFragment : Fragment() {
     }
 
     private fun initAdapter() {
-        customAdapter = CustomAdapter(){
+        customAdapter = CustomAdapter() {
             itemPositionSubject.onNext(it)
         }
     }
@@ -117,8 +185,8 @@ class MainFragment : Fragment() {
         }
     }
 
-    private fun initTextView(){
-        with(binding){
+    private fun initTextView() {
+        with(binding) {
 
             val timer = Observable.interval(1, TimeUnit.SECONDS)
                 .subscribeOn(Schedulers.single())
@@ -130,13 +198,13 @@ class MainFragment : Fragment() {
         }
     }
 
-    private fun initToast(){
+    private fun initToast() {
         val disposableItemPosition = itemPositionSubject
             .subscribeOn(Schedulers.single())
             .observeOn(AndroidSchedulers.mainThread())
-            .subscribe{
-            Toast.makeText(requireActivity(), it.toString(), Toast.LENGTH_SHORT).show()
-        }
+            .subscribe {
+                Toast.makeText(requireActivity(), it.toString(), Toast.LENGTH_SHORT).show()
+            }
         compositeDisposable.add(disposableItemPosition)
     }
 
